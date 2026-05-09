@@ -5,6 +5,7 @@ const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
+const authRouter = require('./routes/auth');
 const businessesRouter = require('./routes/businesses');
 const matchesRouter = require('./routes/matches');
 const messagesRouter = require('./routes/messages');
@@ -29,6 +30,7 @@ app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/businesses', businessesRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/messages', messagesRouter);

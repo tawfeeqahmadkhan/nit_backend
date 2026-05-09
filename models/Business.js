@@ -15,7 +15,8 @@ const aiTagsSchema = new mongoose.Schema({
 
 const businessSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  owner_email: { type: String, required: true, lowercase: true, trim: true },
+  owner_email: { type: String, required: true, lowercase: true, trim: true, unique: true },
+  password_hash: { type: String, select: false },
   address: { type: String, required: true },
   location: {
     type: { type: String, enum: ['Point'], default: 'Point' },
