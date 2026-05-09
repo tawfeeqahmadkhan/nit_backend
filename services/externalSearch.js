@@ -2,36 +2,38 @@ const axios = require('axios');
 const { parseExternalResults } = require('./groqService');
 
 async function searchExternalBusinesses(problemKeywords) {
-  if (!process.env.GOOGLE_CSE_KEY || !process.env.GOOGLE_CSE_ID) {
+  if (!process.env.SERPAPI_KEY) {
+    console.warn('SERPAPI_KEY not set — skipping external search');
     return [];
   }
 
   const query = `${problemKeywords.slice(0, 4).join(' ')} business solution provider`;
 
   try {
-    const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
+    const response = await axios.get('https://serpapi.com/search', {
       params: {
-        key: process.env.GOOGLE_CSE_KEY,
-        cx: process.env.GOOGLE_CSE_ID,
+        api_key: process.env.SERPAPI_KEY,
+        engine: 'google',
         q: query,
-        num: 5
+        num: 5,
       },
-      timeout: 8000
+      timeout: 10000,
     });
 
-    const items = response.data.items || [];
+    const items = response.data.organic_results || [];
     const snippets = items.map(item => ({
       title: item.title,
       snippet: item.snippet,
-      url: item.link
+      url: item.link,
     }));
 
     if (snippets.length === 0) return [];
 
+    // Groq parses the raw results into structured business objects
     const parsed = await parseExternalResults(snippets, problemKeywords);
     return Array.isArray(parsed) ? parsed : [];
   } catch (err) {
-    console.error('External search error:', err.message);
+    console.error('SerpAPI search error:', err.message);
     return [];
   }
 }
