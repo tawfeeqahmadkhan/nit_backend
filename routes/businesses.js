@@ -112,7 +112,7 @@ router.post('/:id/rematch', async (req, res) => {
     if (!business) return res.status(404).json({ error: 'Business not found.' });
 
     const io = req.app.get('io');
-    findAndSaveMatches(business, io).catch(console.error);
+    findAndSaveMatches(business, io, true).catch(console.error);
 
     res.json({ message: 'Re-matching started.' });
   } catch (err) {

@@ -45,6 +45,11 @@ app.use(errorHandler);
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
+  // Join a business-specific room to receive match notifications
+  socket.on('join_business', (bizId) => {
+    socket.join(`biz_${bizId}`);
+  });
+
   // Join a match-specific room for message delivery
   socket.on('join_match', (matchId) => {
     socket.join(`match_${matchId}`);
