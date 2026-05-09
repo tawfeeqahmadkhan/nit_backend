@@ -1,7 +1,7 @@
 const Groq = require('groq-sdk');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const MODEL = 'llama3-70b-8192';
+const MODEL = 'llama-3.3-70b-versatile';
 
 async function tagBusiness({ name, services, challenges }) {
   const prompt = `You are a B2B business analyst. Analyze this business and return a JSON object.
