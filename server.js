@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const authRouter = require('./routes/auth');
+const chatRouter = require('./routes/chat');
 const businessesRouter = require('./routes/businesses');
 const matchesRouter = require('./routes/matches');
 const messagesRouter = require('./routes/messages');
@@ -31,6 +32,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use('/api/chat', chatRouter);
 app.use('/api/businesses', businessesRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/messages', messagesRouter);
