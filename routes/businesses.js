@@ -108,8 +108,28 @@ router.get('/:id/matches', async (req, res) => {
 // POST /api/businesses/:id/rematch — manually trigger re-matching
 router.post('/:id/rematch', async (req, res) => {
   try {
-    const business = await Business.findById(req.params.id);
+    let business = await Business.findById(req.params.id);
     if (!business) return res.status(404).json({ error: 'Business not found.' });
+
+    // Re-run AI tagging if it previously failed
+    const hasNoTags =
+      !business.ai_tags?.problem_keywords?.length &&
+      !business.ai_tags?.solution_keywords?.length;
+
+    if (hasNoTags) {
+      try {
+        const ai_tags = await tagBusiness({
+          name: business.name,
+          services: business.services,
+          challenges: business.challenges,
+        });
+        await Business.updateOne({ _id: business._id }, { $set: { ai_tags } });
+        business = await Business.findById(business._id);
+        console.log(`[rematch] Re-tagged ${business._id}`);
+      } catch (err) {
+        console.error('[rematch] Re-tagging failed:', err.message);
+      }
+    }
 
     const io = req.app.get('io');
     findAndSaveMatches(business, io, true).catch(console.error);

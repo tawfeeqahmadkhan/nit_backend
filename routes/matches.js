@@ -47,7 +47,9 @@ router.post('/:id/accept', async (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
-      io.emit('match_accepted', { match_id: match._id, business_a: match.business_a, business_b: match.business_b });
+      const payload = { match_id: match._id, business_a: match.business_a, business_b: match.business_b };
+      io.to(`biz_${match.business_a}`).emit('match_accepted', payload);
+      io.to(`biz_${match.business_b}`).emit('match_accepted', payload);
     }
 
     res.json({ message: 'Match accepted.', match });

@@ -3,6 +3,12 @@ const Groq = require('groq-sdk');
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const MODEL = 'llama-3.3-70b-versatile';
 
+// Strip markdown code fences Groq sometimes adds despite "no markdown" instruction
+function extractJSON(text) {
+  const stripped = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+  return JSON.parse(stripped);
+}
+
 async function tagBusiness({ name, services, challenges }) {
   const prompt = `You are a B2B business analyst. Analyze this business and return a JSON object.
 
@@ -28,7 +34,7 @@ problem_keywords: 5-8 keywords that describe what this business NEEDS or struggl
   });
 
   const text = response.choices[0].message.content.trim();
-  return JSON.parse(text);
+  return extractJSON(text);
 }
 
 async function scoreMatch(problemDescription, solutionDescription) {
@@ -54,7 +60,7 @@ How well does Business B solve Business A's problem? Return ONLY a valid JSON ob
   });
 
   const text = response.choices[0].message.content.trim();
-  return JSON.parse(text);
+  return extractJSON(text);
 }
 
 async function parseExternalResults(snippets, problemKeywords) {
@@ -84,7 +90,7 @@ If none are clearly relevant businesses, return an empty array: []`;
   });
 
   const text = response.choices[0].message.content.trim();
-  return JSON.parse(text);
+  return extractJSON(text);
 }
 
 module.exports = { tagBusiness, scoreMatch, parseExternalResults };

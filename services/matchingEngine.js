@@ -4,7 +4,7 @@ const { scoreMatch } = require('./groqService');
 const { geoBoost } = require('./geocoder');
 const { searchExternalBusinesses } = require('./externalSearch');
 
-const MATCH_THRESHOLD = 0.60;
+const MATCH_THRESHOLD = 0.50;
 
 // force=true bypasses the "already has matches" guard (used by /rematch endpoint)
 async function findAndSaveMatches(newBusiness, io, force = false) {
@@ -12,7 +12,10 @@ async function findAndSaveMatches(newBusiness, io, force = false) {
   const problemKeywords  = ai_tags?.problem_keywords  || [];
   const solutionKeywords = ai_tags?.solution_keywords || [];
 
-  if (problemKeywords.length === 0 && solutionKeywords.length === 0) return [];
+  if (problemKeywords.length === 0 && solutionKeywords.length === 0) {
+    console.log(`[matching] ${_id}: no AI tags — skipping`);
+    return [];
+  }
 
   // Skip if business already has matches and this isn't a forced re-run
   if (!force && newBusiness.matched_businesses?.length > 0) return [];
@@ -30,6 +33,21 @@ async function findAndSaveMatches(newBusiness, io, force = false) {
   }).limit(10);
 
   candidates = [...candidates, ...reverseCandidates];
+
+  // Fallback: if keyword overlap found no one, score ALL other businesses
+  // (important when vocab differs but businesses are still semantically compatible)
+  if (candidates.length === 0) {
+    console.log(`[matching] ${_id}: no keyword overlap — scanning all businesses`);
+    candidates = await Business.find({
+      _id: { $ne: _id },
+      $or: [
+        { 'ai_tags.solution_keywords': { $exists: true, $not: { $size: 0 } } },
+        { 'ai_tags.problem_keywords':  { $exists: true, $not: { $size: 0 } } },
+      ],
+    }).limit(20);
+  }
+
+  console.log(`[matching] ${_id}: scoring ${candidates.length} candidate(s)`);
 
   const internalMatches = [];
 
@@ -64,7 +82,8 @@ async function findAndSaveMatches(newBusiness, io, force = false) {
     let scored;
     try {
       scored = await scoreMatch(problemDesc, solutionDesc);
-    } catch {
+    } catch (err) {
+      console.error(`[matching] scoreMatch failed for ${_id}↔${candidate._id}:`, err.message);
       continue;
     }
 
@@ -73,6 +92,8 @@ async function findAndSaveMatches(newBusiness, io, force = false) {
       candidate.location?.coordinates || [0, 0]
     );
     const finalScore = Math.min(1, scored.score + boost);
+
+    console.log(`[matching] ${candidate.name}: score=${finalScore.toFixed(2)} (raw=${scored.score}, boost=${boost}) ${finalScore >= MATCH_THRESHOLD ? '✓ SAVED' : '✗ below threshold'}`);
 
     if (finalScore >= MATCH_THRESHOLD) {
       const [aId, bId] = [_id, candidate._id].sort((a, b) =>
